@@ -1,1 +1,8 @@
 - unexpect end of json on when run dockerfile
+    io.ReadFile()
+- Port already use by another process
+    Change port
+- Wrong URL
+    Change baseURL
+- SyntaxError: Unexpected non-whitespace character after JSON at position ${interger} with http status 400 from server
+    

@@ -83,7 +83,7 @@ func setConfig(db *sql.DB) {
 	con = cfg
 }
 
-func (c *Config) Authenticate(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (c *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	req := &ReqAuth{}
 
 	err := c.ReadJson(w, r, req)
@@ -92,7 +92,7 @@ func (c *Config) Authenticate(ctx context.Context, w http.ResponseWriter, r *htt
 		return
 	}
 
-	user, err := c.Models.User.GetByEmail(ctx, req.Email)
+	user, err := c.Models.User.GetByEmail(context.Background(), req.Email)
 	if err != nil {
 		c.WriteErrJson(w, err, http.StatusBadRequest)
 		return
@@ -105,9 +105,9 @@ func (c *Config) Authenticate(ctx context.Context, w http.ResponseWriter, r *htt
 	}
 
 	resp := &Response{
-		Error: false,
+		Error:   false,
 		Message: fmt.Sprintf("Logged in user with email %v", user.Email),
-		Data: user,
+		Data:    user,
 	}
 
 	c.WriteJson(w, http.StatusAccepted, resp)

@@ -3,8 +3,11 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"sync"
 )
 
@@ -105,30 +108,30 @@ func GetConfig() *Config {
 
 func readConfig() {
 	cfg := &Config{}
-	// fileConfig := os.Getenv("config")
-	// if fileConfig == "" {
-	// 	fileConfig = "configExample.json"
-	// }
-
-	// buf, _ := os.ReadFile(fileConfig)
-	// if len(buf) == 0 {
-	// 	buf, _ = os.ReadFile("../configExample.json")
-	// 	if len(buf) == 0 {
-	// 		buf, _ = os.ReadFile("../../configExample.json")
-	// 		if len(buf) == 0 {
-	// 			buf, _ = os.ReadFile("../../../configExample.json")
-	// 		}
-	// 	}
-	// }
-	// fmt.Println("len buf", len(buf))
-	// err := json.Unmarshal(buf, cfg)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	if cfg.Port == "" {
-		cfg.Port = "81"
+	fileConfig := os.Getenv("config")
+	if fileConfig == "" {
+		fileConfig = "configExample.json"
 	}
+
+	buf, _ := os.ReadFile(fileConfig)
+	if len(buf) == 0 {
+		buf, _ = os.ReadFile("../configExample.json")
+		if len(buf) == 0 {
+			buf, _ = os.ReadFile("../../configExample.json")
+			if len(buf) == 0 {
+				buf, _ = os.ReadFile("../../../configExample.json")
+			}
+		}
+	}
+	fmt.Println("len buf", len(buf))
+	err := json.Unmarshal(buf, cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// if cfg.Port == "" {
+	// 	cfg.Port = "81"
+	// }
 
 	con = cfg
 }

@@ -123,7 +123,7 @@ func readConfig() {
 			}
 		}
 	}
-	fmt.Println("len buf", len(buf))
+	fmt.Println("Once executive: len buf is ", len(buf))
 	err := json.Unmarshal(buf, cfg)
 	if err != nil {
 		log.Fatal(err)

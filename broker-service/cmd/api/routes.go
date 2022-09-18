@@ -14,13 +14,13 @@ func routes(cfg *model.Config) http.Handler {
 
 	// Auth who can connect
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
-		// AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		// AllowedHeaders:   []string{"Accept", "Authorization", model.ContentType, "X-CSRF-Token"},
-		// ExposedHeaders:   []string{"Link"},
-		// AllowCredentials: true,
-		// Debug:            true,
-		// MaxAge:           300,
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Accept", "Authorization", model.ContentType, "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		Debug:            true,
+		MaxAge:           300,
 	}))
 
 	mux.Use(middleware.Heartbeat("/ping"))

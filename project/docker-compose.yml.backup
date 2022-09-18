@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  broker-service:
+    build: 
+      context: ./../broker-service
+      dockerfile: ./../broker-service/broker-service.dockerfile
+    restart: always
+    ports:
+      - "8080:81"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  authentication-service:
+    build: 
+      context: ./../authentication-service
+      dockerfile: ./../authentication-service/authentication-service.dockerfile
+    restart: always
+    ports:
+      - "8081:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+      # Get by os.Getenv("DSN") please rename
+
+
+  postgres:
+    image: 'postgres:14.0'
+    ports:
+      - "5432:5432"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      PORTGRES_USER: postgres
+      PORTGRES_PASSWORD: password
+      POSTGRES_DB: user
+    volumes:
+      - ./db-data/postgres/:/var/lib/postgresql/data/
+      # map local:dockerContainer

@@ -14,7 +14,7 @@ func routes(cfg *model.Config) http.Handler {
 
 	// Auth who can connect
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"*"}, // TODO: Need fix after dev period
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowedHeaders:   []string{"Accept", "Authorization", model.ContentType, "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},

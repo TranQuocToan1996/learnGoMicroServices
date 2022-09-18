@@ -13,9 +13,6 @@ func main() {
 	cfg := &model.Config{
 		Port: "81",
 	}
-	if cfg == nil {
-		log.Fatal("empty config")
-	}
 
 	mux := routes(cfg)
 

@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  broker-service:
+    build: 
+      context: ./../broker-service
+      dockerfile: ./../broker-service/broker-service.dockerfile
+    ports:
+      - "8080:81"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+

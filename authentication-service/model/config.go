@@ -24,7 +24,7 @@ const (
 
 type Config struct {
 	DB            *sql.DB `json:"-"`
-	Models        Models  `json:"models"`
+	Models        Models  `json:"-"`
 	Port          string  `json:"port"`
 	TimeOutSqlSec int     `json:"timeoutSqlSec,omitempty"`
 }
@@ -34,9 +34,10 @@ func GetConfig(db *sql.DB) *Config {
 		return con
 	}
 
-	connOnce.Do(func() {
-		setConfig(db)
-	})
+	// connOnce.Do(func() {
+	// 	setConfig(db)
+	// })
+	setConfig(db)
 
 	return con
 }
@@ -64,9 +65,10 @@ func setConfig(db *sql.DB) {
 		log.Fatal(err)
 	}
 
-	// if cfg.Port == "" {
-	// 	cfg.Port = "81"
-	// }
+	if cfg.Port == "" {
+		cfg.Port = "83"
+		cfg.TimeOutSqlSec = 3
+	}
 
 	cfg.DB = db
 	cfg.Models = New(db)

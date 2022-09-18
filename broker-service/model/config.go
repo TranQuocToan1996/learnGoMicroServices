@@ -99,9 +99,10 @@ func GetConfig() *Config {
 		return con
 	}
 
-	connOnce.Do(func() {
-		readConfig()
-	})
+	// connOnce.Do(func() {
+	// 	readConfig()
+	// })
+	readConfig()
 
 	return con
 }
@@ -129,9 +130,9 @@ func readConfig() {
 		log.Fatal(err)
 	}
 
-	// if cfg.Port == "" {
-	// 	cfg.Port = "81"
-	// }
+	if cfg.Port == "" {
+		cfg.Port = "81"
+	}
 
 	con = cfg
 }

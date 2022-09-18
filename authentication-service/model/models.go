@@ -10,13 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func init() {
-	if con.TimeOutSqlSec > 0 {
-		dbTimeout = time.Second * time.Duration(con.TimeOutSqlSec)
-	}
-}
-
-var dbTimeout = time.Second * 3
+const dbTimeout = time.Second * 3
 
 var db *sql.DB
 

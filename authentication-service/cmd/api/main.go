@@ -26,9 +26,16 @@ func main() {
 		log.Fatal("can't connect to Postgres")
 	}
 
-	cfg := model.GetConfig(conn)
-	if cfg == nil {
-		log.Fatal("empty config")
+	// cfg := model.GetConfig(conn)
+	// if cfg == nil {
+	// 	log.Fatal("empty config")
+	// }
+
+	cfg := &model.Config{
+		DB:            conn,
+		Models:        model.New(conn),
+		Port:          "83",
+		TimeOutSqlSec: 3,
 	}
 
 	mux := routes(cfg)

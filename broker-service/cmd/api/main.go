@@ -9,10 +9,10 @@ import (
 
 func main() {
 
-	cfg := model.GetConfig()
-	// cfg := &model.Config{
-	// 	Port: "81",
-	// }
+	// cfg := model.GetConfig()
+	cfg := &model.Config{
+		Port: "81",
+	}
 	if cfg == nil {
 		log.Fatal("empty config")
 	}
@@ -20,7 +20,7 @@ func main() {
 	mux := routes(cfg)
 
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%s", cfg.Port),
+		Addr:    fmt.Sprintf(":%s", cfg.Port),
 		Handler: mux,
 	}
 

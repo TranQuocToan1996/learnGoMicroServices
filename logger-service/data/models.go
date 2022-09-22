@@ -2,130 +2,146 @@ package data
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
-	"log-service/utilities"
-
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	client     *mongo.Client
-	loggerDb   *mongo.Database
-	loggerColl *mongo.Collection
-)
+var client *mongo.Client
 
 func New(mongo *mongo.Client) Models {
 	client = mongo
-	loggerDb = client.Database("logger")
-	loggerColl = loggerDb.Collection("logger")
+
 	return Models{
-		LogEntry{},
+		LogEntry: LogEntry{},
 	}
-}
-
-func NewDatabase(name string, connection string) *mongo.Database {
-	opt := options.Client().ApplyURI(connection)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, opt)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	return client.Database(name)
 }
 
 type Models struct {
-	LogEntry
+	LogEntry LogEntry
 }
 
 type LogEntry struct {
-	ID       string    `bson:"_id,omitempty" json:"id,omitempty"`
-	Name     string    `bson:"name,omitempty" json:"name,omitempty"`
-	Data     string    `bson:"data,omitempty" json:"data,omitempty"`
-	CreateAt time.Time `bson:"creatAt" json:"creatAt"`
-	UpdateAt time.Time `bson:"updateAt" json:"updateAt"`
+	ID        string    `bson:"_id,omitempty" json:"id,omitempty"`
+	Name      string    `bson:"name" json:"name"`
+	Data      string    `bson:"data" json:"data"`
+	CreatedAt time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time `bson:"updated_at" json:"updated_at"`
 }
 
 func (l *LogEntry) Insert(entry LogEntry) error {
-	collection := loggerColl
+	collection := client.Database("logs").Collection("logs")
 
-	now := utilities.TimeLocalNow()
-
-	_, err := collection.InsertOne(context.Background(), LogEntry{
-		Name:     entry.Name,
-		Data:     entry.Data,
-		CreateAt: now,
-		UpdateAt: now,
+	_, err := collection.InsertOne(context.TODO(), LogEntry{
+		Name: entry.Name,
+		Data: entry.Data,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 	if err != nil {
+		log.Println("Error inserting into logs:", err)
 		return err
 	}
+
 	return nil
 }
 
-func (l *LogEntry) All(entry LogEntry) (logs []*LogEntry, missing []string, err error) {
-	collection := loggerColl
-
+func (l *LogEntry) All() ([]*LogEntry, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	otps := options.Find()
-	otps.SetSort(bson.D{
-		{Key: "createAt", Value: -1},
-	})
+	collection := client.Database("logs").Collection("logs")
 
-	// No filter find
-	cur, err := collection.Find(context.TODO(), bson.D{}, otps)
+	opts := options.Find()
+	opts.SetSort(bson.D{{"created_at", -1}})
+
+	cursor, err := collection.Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		fmt.Println("Find document err")
-		return nil, nil, err
+		log.Println("Finding all docs error:", err)
+		return nil, err
 	}
-	defer cur.Close(ctx)
+	defer cursor.Close(ctx)
 
-	for cur.Next(ctx) {
-		l := &LogEntry{}
-		err := cur.Decode(l)
+	var logs []*LogEntry
+
+	for cursor.Next(ctx) {
+		var item LogEntry
+
+		err := cursor.Decode(&item)
 		if err != nil {
-			log.Println("error decode", cur.Current.String())
-			missing = append(missing, cur.Current.String())
-			continue
+			log.Print("Error decoding log into slice:", err)
+			return nil, err
+		} else {
+			logs = append(logs, &item)
 		}
-		logs = append(logs, l)
 	}
 
-	return logs, missing, nil
-
+	return logs, nil
 }
 
-func (l *LogEntry) CreateIndex(collectionName string, field string, unique bool) bool {
-
-	// 1. Lets define the keys for the index we want to create
-	mod := mongo.IndexModel{
-		Keys:    bson.M{field: 1}, // index in ascending order or -1 for descending order
-		Options: options.Index().SetUnique(unique),
-	}
-
-	// 2. Create the context for this operation
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (l *LogEntry) GetOne(id string) (*LogEntry, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	// 3. Connect to the database and access the collection
-	collection := loggerColl
+	collection := client.Database("logs").Collection("logs")
 
-	// 4. Create a single index
-	_, err := collection.Indexes().CreateOne(ctx, mod)
+	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		// 5. Something went wrong, we log it and return false
-		fmt.Println(err.Error())
-		return false
+		return nil, err
 	}
 
-	// 6. All went well, we return true
-	return true
+	var entry LogEntry
+	err = collection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
+}
+
+func (l *LogEntry) DropCollection() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collection := client.Database("logs").Collection("logs")
+
+	if err := collection.Drop(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *LogEntry) Update() (*mongo.UpdateResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collection := client.Database("logs").Collection("logs")
+
+	docID, err := primitive.ObjectIDFromHex(l.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := collection.UpdateOne(
+		ctx,
+		bson.M{"_id": docID},
+		bson.D{
+			{"$set", bson.D{
+				{"name", l.Name},
+				{"data", l.Data},
+				{"updated_at", time.Now()},
+			}},
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

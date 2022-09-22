@@ -44,6 +44,8 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	switch req.Action {
 	case auth:
 		c.authenticate(w, req.Auth)
+	case logs:
+		c.log(w, req.Log)
 	default:
 		c.WriteErrJson(w, ErrUnknownAction, http.StatusBadRequest)
 	}
@@ -51,11 +53,49 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	c.WriteJson(w, http.StatusOK, req)
 }
 
+func (c *Config) log(w http.ResponseWriter, l LogPayload) {
+	const (
+		logServiceURL = "http://logger-service/log"
+	)
+	buf, err := json.Marshal(l)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	newReq, err := http.NewRequest(http.MethodPost, logServiceURL, bytes.NewBuffer(buf))
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	newReq.Header.Set("Content-Type", "application/json")
+	client := http.Client{
+		Timeout: time.Second * 180,
+	}
+
+	res, err := client.Do(newReq)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		c.WriteErrJson(w, ErrUnAuth)
+		return
+	}
+
+	var payload Response
+	payload.Message = "logged"
+	c.WriteJson(w, http.StatusAccepted, payload)
+}
+
 func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 
 	const (
-		pre          = `http://`
-		baseUrl      = `authentication-service`
+		pre = `http://`
+		// baseUrl      = `authentication-service` // name in docker-compose
+		baseUrl      = `localhost:8081` // name in docker-compose
 		route        = `/authenticate`
 		fullEndpoint = pre + baseUrl + route // Hover to check
 	)

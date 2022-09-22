@@ -3,6 +3,7 @@ package model
 type Request struct {
 	Action Action      `json:"action"`
 	Auth   AuthPayload `json:"auth,omitempty"`
+	Log    LogPayload  `json:"log,omitempty"`
 }
 
 type AuthPayload struct {
@@ -10,8 +11,14 @@ type AuthPayload struct {
 	Password string `json:"password"`
 }
 
+type LogPayload struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
+}
+
 type Action string
 
 const (
 	auth Action = "auth"
+	logs  Action = "log"
 )

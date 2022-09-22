@@ -5,4 +5,5 @@
 - Wrong URL
     Change baseURL
 - SyntaxError: Unexpected non-whitespace character after JSON at position ${interger} with http status 400 from server
-    
+    relation \"users\" does not exist (SQLSTATE 42P01)'
+    Post \"http://localhost:8081/authenticate\": dial tcp 127.0.0.1:8081: connect: connection refused

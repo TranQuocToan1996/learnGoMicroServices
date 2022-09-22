@@ -1,6 +1,7 @@
 package model
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
@@ -92,6 +94,15 @@ func (c *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// LOL for debug in dev only
+	if req.Email == "admin@example.com" && req.Password == "verysecret" {
+		c.WriteJson(w, http.StatusAccepted, &Response{
+			Error:   false,
+			Message: fmt.Sprintf("Testing Logged in user with email testing %v", req.Email),
+		})
+		return
+	}
+
 	user, err := c.Models.User.GetByEmail(context.Background(), req.Email)
 	if err != nil {
 		c.WriteErrJson(w, err, http.StatusBadRequest)
@@ -104,6 +115,12 @@ func (c *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// log
+	err = c.logRequest("authentication", fmt.Sprintf("%s loggin", user.Email))
+	if err != nil || !match {
+		c.WriteErrJson(w, err, http.StatusBadRequest)
+		return
+	}
 	resp := &Response{
 		Error:   false,
 		Message: fmt.Sprintf("Logged in user with email %v", user.Email),
@@ -129,6 +146,40 @@ func (c *Config) ReadJson(w http.ResponseWriter, r *http.Request, data any) erro
 	err = decoder.Decode(&struct{}{})
 	if err != io.EOF {
 		return ErrMustSingleJson
+	}
+
+	return nil
+}
+
+func (c *Config) logRequest(name, data string) error {
+
+	var entry struct {
+		Name string `json:"name"`
+		Data string `json:"data"`
+	}
+
+	entry.Name = name
+	entry.Data = data
+
+	buf, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+
+	logServiceURL := "http://logger-service/log"
+
+	newReq, err := http.NewRequest(http.MethodPost, logServiceURL, bytes.NewBuffer(buf))
+	if err != nil {
+		return err
+	}
+
+	client := http.Client{
+		Timeout: 180 * time.Second,
+	}
+
+	_, err = client.Do(newReq)
+	if err != nil {
+		return err
 	}
 
 	return nil

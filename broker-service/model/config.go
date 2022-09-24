@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/rpc"
 	"os"
 	"sync"
 	"time"
@@ -50,7 +51,8 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		c.authenticate(w, req.Auth)
 	case logs:
 		// c.log(w, req.Log) old log
-		c.logMessageToRabbitMQ(w, req.Log)
+		// c.logMessageToRabbitMQ(w, req.Log)
+		c.logViaRPC(w, req.Log)
 	case mail:
 		c.sendMail(w, req.Mail)
 	default:
@@ -162,6 +164,34 @@ func (c *Config) logMessageToRabbitMQ(w http.ResponseWriter, logData LogPayload)
 
 	var payload Response
 	payload.Message = fmt.Sprintf("logged via RabbitMQ with [name, data]: [%v, %v]", logData.Name, logData.Data)
+	c.WriteJson(w, http.StatusOK, &payload)
+}
+
+func (c *Config) logViaRPC(w http.ResponseWriter, logData LogPayload) {
+	// Connect to RPC server in the logger service through port 5001
+	client, err := rpc.Dial("tcp", "logger-service:5001")
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+	rpcPayload := &RPCPayload{
+		Name: logData.Name,
+		Data: logData.Data,
+	}
+
+	var result string
+
+	// RPCServer is name of struct in server end (logger service) with the method LogInfo
+	err = client.Call("RPCServer.LogInfo", rpcPayload, &result)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	payload := Response{
+		Message: result,
+	}
+
 	c.WriteJson(w, http.StatusOK, &payload)
 }
 

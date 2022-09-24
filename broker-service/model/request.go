@@ -31,3 +31,8 @@ const (
 	logs Action = "log"
 	mail Action = "mail"
 )
+
+type RPCPayload struct {
+	Name string 
+	Data string 
+}

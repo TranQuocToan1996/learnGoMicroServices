@@ -13,3 +13,16 @@ Error: SyntaxError: Unexpected non-whitespace character after JSON at position 1
 Error: SyntaxError: Unexpected non-whitespace character after JSON at position 49
 
 {"error":true,"message":"Post \"http://authentication-service/authenticate\": dial tcp 172.25.0.7:80: connect: connection refused"}{"action":"auth","auth":{"email":"admin@example.com","password":"verysecret"},"log":{"name":"","data":""},"mail":{"from":"","to":"","subject":"","message":""}}
+
+RPC 
+{
+    "action": "log",
+    "log": {
+        "name": "event",
+        "data": "some kind of data"
+    }
+}
+{
+    "error": true,
+    "message": "unexpected EOF"
+}

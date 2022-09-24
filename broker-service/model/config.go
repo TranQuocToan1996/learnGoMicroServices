@@ -1,7 +1,9 @@
 package model
 
 import (
+	"brokerservice/event"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +13,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var (
@@ -28,7 +32,8 @@ const (
 )
 
 type Config struct {
-	Port string `json:"port"`
+	Port     string           `json:"port"`
+	RabbitMQ *amqp.Connection `json:"-"`
 }
 
 func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
@@ -44,34 +49,30 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case auth:
 		c.authenticate(w, req.Auth)
 	case logs:
-		c.log(w, req.Log)
+		// c.log(w, req.Log) old log
+		c.logMessageToRabbitMQ(w, req.Log)
 	case mail:
 		c.sendMail(w, req.Mail)
 	default:
 		c.WriteErrJson(w, ErrUnknownAction, http.StatusBadRequest)
-		return
 	}
 
-	// c.WriteJson(w, http.StatusOK, req)
 }
 
 func (c *Config) sendMail(w http.ResponseWriter, l MailPayload) {
-	const (
-		mailServiceURL = "http://mailer-service/send"
-	)
 	buf, err := json.Marshal(l)
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
 	}
 
-	newReq, err := http.NewRequest(http.MethodPost, mailServiceURL, bytes.NewBuffer(buf))
+	newReq, err := http.NewRequest(http.MethodPost, MailServiceURL, bytes.NewBuffer(buf))
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
 	}
 
-	newReq.Header.Set("Content-Type", "application/json")
+	newReq.Header.Set(ContentType, ApplicationJson)
 	client := http.Client{
 		Timeout: time.Second * 180,
 	}
@@ -93,23 +94,21 @@ func (c *Config) sendMail(w http.ResponseWriter, l MailPayload) {
 
 }
 
+// old log func, sending req to log service
 func (c *Config) log(w http.ResponseWriter, log LogPayload) {
-	const (
-		logServiceURL = "http://logger-service/log"
-	)
 	buf, err := json.Marshal(&log)
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
 	}
 
-	newReq, err := http.NewRequest(http.MethodPost, logServiceURL, bytes.NewBuffer(buf))
+	newReq, err := http.NewRequest(http.MethodPost, LogServiceURL, bytes.NewBuffer(buf))
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
 	}
 
-	newReq.Header.Set("Content-Type", "application/json")
+	newReq.Header.Set(ContentType, ApplicationJson)
 	client := http.Client{
 		Timeout: time.Second * 180,
 	}
@@ -130,16 +129,51 @@ func (c *Config) log(w http.ResponseWriter, log LogPayload) {
 	c.WriteJson(w, http.StatusOK, payload)
 }
 
-func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
+func (c *Config) pushToQueue(name, msg string) error {
+	emitter, err := event.NewEventEmitter(c.RabbitMQ)
+	if err != nil {
+		return err
+	}
 
-	const (
-		pre     = `http://`
-		baseUrl = `authentication-service` // name in docker-compose
-		// baseUrl      = `localhost:8081` // debug
-		route = `/authenticate`
-		// fullEndpoint = pre + baseUrl + route // Hover to check
-		fullEndpoint = "http://authentication-service/authenticate"
-	)
+	payload := LogPayload{
+		Name: name,
+		Data: msg,
+	}
+
+	buf, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	err = emitter.Push(context.Background(), string(buf), InfoLog)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) logMessageToRabbitMQ(w http.ResponseWriter, logData LogPayload) {
+	err := c.pushToQueue(logData.Name, logData.Data)
+	if err != nil {
+		log.Println(err)
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	var payload Response
+	payload.Message = fmt.Sprintf("logged via RabbitMQ with [name, data]: [%v, %v]", logData.Name, logData.Data)
+	c.WriteJson(w, http.StatusOK, &payload)
+}
+
+func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
+	// Debug
+	// const (
+	// 	pre     = `http://`
+	// 	baseUrl = `authentication-service` // name in docker-compose
+	// 	// baseUrl      = `localhost:8081` // debug
+	// 	route = `/authenticate`
+	// 	// fullEndpoint = pre + baseUrl + route // Hover to check
+	// )
 
 	// Call to auth service
 	buf, err := json.Marshal(authReq)
@@ -149,7 +183,7 @@ func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 	}
 
 	// Create req, but not yet send
-	newReq, err := http.NewRequest(http.MethodPost, fullEndpoint, bytes.NewBuffer(buf))
+	newReq, err := http.NewRequest(http.MethodPost, AuthenServiceURL, bytes.NewBuffer(buf))
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
@@ -262,7 +296,7 @@ func (c *Config) WriteJson(w http.ResponseWriter, status int, data any, headers 
 		}
 	}
 
-	w.Header().Set(ContentType, appicationJsonMIME)
+	w.Header().Set(ContentType, ApplicationJson)
 	w.WriteHeader(status)
 
 	_, err = w.Write(buf)

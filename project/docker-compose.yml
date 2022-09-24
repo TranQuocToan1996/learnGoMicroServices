@@ -1,5 +1,7 @@
 version: '3'
 
+
+# https://stackoverflow.com/questions/31746182/docker-compose-wait-for-container-x-before-starting-y
 services:
 
   broker-service:
@@ -12,17 +14,37 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    depends_on:
+      - rabbitmq
+    links: 
+        - rabbitmq      
+    
+  
+  listener-service:
+    build:
+      context: ./../listener-service
+      dockerfile: ./../listener-service/listener-service.dockerfile
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    depends_on:
+      - rabbitmq
+    links: 
+        - rabbitmq        
 
   logger-service:
     build:
       context: ./../logger-service
       dockerfile: ./../logger-service/logger-service.dockerfile
     restart: always
-    # ports:
-    #   - "8080:81"
     deploy:
       mode: replicated
       replicas: 1
+    depends_on:
+      - rabbitmq
+    links: 
+        - rabbitmq        
 
   mailer-service:
     build:
@@ -41,6 +63,10 @@ services:
       MAIL_PASSWORD: ""
       FROM_NAME: "John Smith"
       FROM_ADDRESS: john.smith@example.com
+    depends_on:
+      - rabbitmq
+    links: 
+        - rabbitmq        
 
 
 
@@ -56,6 +82,10 @@ services:
       replicas: 1
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+    depends_on:
+      - rabbitmq
+    links: 
+        - rabbitmq        
 
 
   postgres:
@@ -103,3 +133,8 @@ services:
       POSTGRES_DB: users
     volumes:
       - ./db-data/rabbitmq/:/var/lib/rabbitmq/
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:5672"]
+        interval: 30s
+        timeout: 10s
+        retries: 5      

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -136,9 +135,10 @@ func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 	const (
 		pre     = `http://`
 		baseUrl = `authentication-service` // name in docker-compose
-		// baseUrl      = `localhost:8081` // name in docker-compose
-		route        = `/authenticate`
-		fullEndpoint = pre + baseUrl + route // Hover to check
+		// baseUrl      = `localhost:8081` // debug
+		route = `/authenticate`
+		// fullEndpoint = pre + baseUrl + route // Hover to check
+		fullEndpoint = "http://authentication-service/authenticate"
 	)
 
 	// Call to auth service
@@ -169,18 +169,18 @@ func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 	// More info: request-response cycle is constituted up of Dialer, TLS Handshake, Request Header, Request Body, Response Header and Response Body timeouts
 	// Make customer Transport
 	// https://itnext.io/http-request-timeouts-in-go-for-beginners-fe6445137c90
-	var netTransport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
-		}).Dial, // Consider add context
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
+	// var netTransport = &http.Transport{
+	// 	Dial: (&net.Dialer{
+	// 		Timeout: 5 * time.Second,
+	// 	}).Dial, // Consider add context
+	// 	TLSHandshakeTimeout: 5 * time.Second,
+	// }
 
 	// Create client
 	client := &http.Client{
 		// Transport: nil, // Default Transport
-		Transport: netTransport,
-		Timeout:   time.Second * 10,
+		// Transport: netTransport,
+		Timeout: time.Second * 10,
 	}
 
 	// Send req

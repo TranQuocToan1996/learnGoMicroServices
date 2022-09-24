@@ -34,7 +34,7 @@ func main() {
 	cfg := &model.Config{
 		DB:            conn,
 		Models:        model.New(conn),
-		Port:          "83",
+		Port:          "80",
 		TimeOutSqlSec: 3,
 	}
 

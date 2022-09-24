@@ -46,18 +46,59 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		c.authenticate(w, req.Auth)
 	case logs:
 		c.log(w, req.Log)
+	case mail:
+		c.sendMail(w, req.Mail)
 	default:
 		c.WriteErrJson(w, ErrUnknownAction, http.StatusBadRequest)
+		return
 	}
 
-	c.WriteJson(w, http.StatusOK, req)
+	// c.WriteJson(w, http.StatusOK, req)
 }
 
-func (c *Config) log(w http.ResponseWriter, l LogPayload) {
+func (c *Config) sendMail(w http.ResponseWriter, l MailPayload) {
+	const (
+		mailServiceURL = "http://mailer-service/send"
+	)
+	buf, err := json.Marshal(l)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	newReq, err := http.NewRequest(http.MethodPost, mailServiceURL, bytes.NewBuffer(buf))
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	newReq.Header.Set("Content-Type", "application/json")
+	client := http.Client{
+		Timeout: time.Second * 180,
+	}
+
+	res, err := client.Do(newReq)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		c.WriteErrJson(w, ErrUnAuth)
+		return
+	}
+
+	var payload Response
+	payload.Message = fmt.Sprintf("Mail to: %v", l.To)
+	c.WriteJson(w, http.StatusOK, payload)
+
+}
+
+func (c *Config) log(w http.ResponseWriter, log LogPayload) {
 	const (
 		logServiceURL = "http://logger-service/log"
 	)
-	buf, err := json.Marshal(l)
+	buf, err := json.Marshal(&log)
 	if err != nil {
 		c.WriteErrJson(w, err)
 		return
@@ -80,22 +121,22 @@ func (c *Config) log(w http.ResponseWriter, l LogPayload) {
 		return
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusAccepted {
+	if res.StatusCode != http.StatusOK {
 		c.WriteErrJson(w, ErrUnAuth)
 		return
 	}
 
 	var payload Response
 	payload.Message = "logged"
-	c.WriteJson(w, http.StatusAccepted, payload)
+	c.WriteJson(w, http.StatusOK, payload)
 }
 
 func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 
 	const (
-		pre = `http://`
-		// baseUrl      = `authentication-service` // name in docker-compose
-		baseUrl      = `localhost:8081` // name in docker-compose
+		pre     = `http://`
+		baseUrl = `authentication-service` // name in docker-compose
+		// baseUrl      = `localhost:8081` // name in docker-compose
 		route        = `/authenticate`
 		fullEndpoint = pre + baseUrl + route // Hover to check
 	)
@@ -155,7 +196,7 @@ func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 	if response.StatusCode == http.StatusUnauthorized {
 		c.WriteErrJson(w, ErrUnAuth)
 		return
-	} else if response.StatusCode != http.StatusAccepted {
+	} else if response.StatusCode != http.StatusOK {
 		c.WriteErrJson(w, ErrCallingAuth)
 		return
 	}
@@ -173,7 +214,7 @@ func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {
 		return
 	}
 
-	err = c.WriteJson(w, http.StatusAccepted, jsonResp)
+	err = c.WriteJson(w, http.StatusOK, jsonResp)
 	if err != nil {
 		c.WriteErrJson(w, err)
 	}

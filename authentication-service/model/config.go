@@ -96,7 +96,7 @@ func (c *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 	// LOL for debug in dev only
 	if req.Email == "admin@example.com" && req.Password == "verysecret" {
-		c.WriteJson(w, http.StatusAccepted, &Response{
+		c.WriteJson(w, http.StatusOK, &Response{
 			Error:   false,
 			Message: fmt.Sprintf("Testing Logged in user with email testing %v", req.Email),
 		})
@@ -127,7 +127,7 @@ func (c *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		Data:    user,
 	}
 
-	c.WriteJson(w, http.StatusAccepted, resp)
+	c.WriteJson(w, http.StatusOK, resp)
 
 }
 

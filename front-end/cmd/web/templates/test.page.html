@@ -4,11 +4,12 @@
     <div class="container">
         <div class="row">
             <div class="col">
-                <h1 class="mt-5">Test microservices</h1>
+                <h1 class="mt-5"> microservices</h1>
                 <hr>
-                <a href="javascript:void(0);" id="brokerBtn" class="btn btn-outline-secondary">Test Broker</a>
-                <a href="javascript:void(0);" id="authBrokerBtn" class="btn btn-outline-secondary">Test Auth</a>
-                <a href="javascript:void(0);" id="logBtn" class="btn btn-outline-secondary">Test Log</a>
+                <a href="javascript:void(0);" id="brokerBtn" class="btn btn-outline-secondary">Send Broker</a>
+                <a href="javascript:void(0);" id="authBrokerBtn" class="btn btn-outline-secondary">Send Auth</a>
+                <a href="javascript:void(0);" id="logBtn" class="btn btn-outline-secondary">Send Log</a>
+                <a href="javascript:void(0);" id="mailBtn" class="btn btn-outline-secondary">Send Mail</a>
 
                 <div id="output" class="mt-5" style="outline: 1px solid silver; padding: 2em;">
                     <span class="text-muted">Output shows here...</span>
@@ -37,12 +38,51 @@
 
         const email = `admin@example.com`
 
-        let brokerBtn = document.getElementById("brokerBtn")
-        let authBrokerBtn = document.getElementById("authBrokerBtn")
-        let logBtn = document.getElementById("logBtn")
         let output = document.getElementById("output")
         let sent = document.getElementById("sent")
         let received = document.getElementById("received")
+        let brokerBtn = document.getElementById("brokerBtn")
+        let authBrokerBtn = document.getElementById("authBrokerBtn")
+        let logBtn = document.getElementById("logBtn")
+        let mailBtn= document.getElementById("mailBtn")
+
+        mailBtn.addEventListener("click", () => {
+                const payload = {
+                    action: "mail",
+                    mail: {
+                        from: "me@example.com",
+                        to: "you@there.com",
+                        subject: "test sending email",
+                        message: "hello world!",
+                    }
+                }
+
+                const headers = new Headers()
+                headers.append("Content-Type", "application/json")
+
+                const body = {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                    headers: headers,
+                }
+
+                fetch("http:\/\/localhost:8080/handle", body)
+                    .then((res) => res.json())
+                    .then((data) => {
+                        sent.innerHTML = JSON.stringify(payload, undefined, 4)
+                        received.innerHTML = JSON.stringify(data, undefined, 4)
+                        if (data.error) {
+                            console.log(data.message)
+                            output.innerHTML += `<br><strong>Error: </strong>: ${data.message}`
+                        } else {
+                            output.innerHTML += `<br><strong>Success reponse from broker service </strong>: ${data.message}`
+                        }
+                    })
+                    .catch((err) => {
+                        console.log(err)
+                        output.innerHTML += `<br><br> Error: ` + err
+                    })
+            })
 
         logBtn.addEventListener("click", () => {
                 const payload = {

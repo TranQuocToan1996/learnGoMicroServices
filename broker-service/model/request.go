@@ -27,12 +27,12 @@ type LogPayload struct {
 type Action string
 
 const (
-	auth Action = "auth"
-	logs Action = "log"
-	mail Action = "mail"
+	auth      Action = "auth"
+	logAction Action = "log"
+	mail      Action = "mail"
 )
 
 type RPCPayload struct {
-	Name string 
-	Data string 
+	Name string
+	Data string
 }

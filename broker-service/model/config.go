@@ -2,6 +2,7 @@ package model
 
 import (
 	"brokerservice/event"
+	"brokerservice/logs"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,6 +17,8 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -49,7 +52,7 @@ func (c *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	switch req.Action {
 	case auth:
 		c.authenticate(w, req.Auth)
-	case logs:
+	case logAction:
 		// c.log(w, req.Log) old log
 		// c.logMessageToRabbitMQ(w, req.Log)
 		c.logViaRPC(w, req.Log)
@@ -193,6 +196,45 @@ func (c *Config) logViaRPC(w http.ResponseWriter, logData LogPayload) {
 	}
 
 	c.WriteJson(w, http.StatusOK, &payload)
+}
+
+func (c *Config) LogViaGRPC(w http.ResponseWriter, r *http.Request) {
+	var reqPayload Request
+
+	err := c.ReadJson(w, r, &reqPayload)
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	conn, err := grpc.Dial("logger-service:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	defer conn.Close()
+
+	client := logs.NewLogServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err = client.WriteLog(ctx, &logs.LogRequest{
+		LogEntry: &logs.Log{
+			Name: reqPayload.Log.Name,
+			Data: reqPayload.Log.Data,
+		},
+	})
+	if err != nil {
+		c.WriteErrJson(w, err)
+		return
+	}
+
+	var payload Response
+	payload.Message = "logged via gRPC"
+
+	c.WriteJson(w, http.StatusOK, &payload)
+
 }
 
 func (c *Config) authenticate(w http.ResponseWriter, authReq AuthPayload) {

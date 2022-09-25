@@ -27,6 +27,7 @@ func routes(cfg *model.Config) http.Handler {
 
 	mux.Post("/", cfg.Broker)
 	mux.Post("/handle", cfg.HandleSubmission)
+	mux.Post("/log-grpc", cfg.LogViaGRPC)
 
 	return mux
 }

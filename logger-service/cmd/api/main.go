@@ -52,7 +52,7 @@ func (c *Config) rpcListen() error {
 		go rpc.ServeConn(rpcConn)
 	}
 
-	return nil
+	// return nil
 }
 
 func main() {
@@ -89,6 +89,9 @@ func main() {
 			log.Println("error listen for rpc with ", err)
 		}
 	}()
+
+	// Listen for gRPC connections
+	go app.gRPCListen()
 
 	// start web server
 	// go app.serve()

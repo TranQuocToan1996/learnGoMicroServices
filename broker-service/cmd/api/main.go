@@ -24,7 +24,7 @@ func main() {
 
 	// cfg := model.GetConfig()
 	cfg := &model.Config{
-		Port:     "81",
+		Port:     "80",
 		RabbitMQ: rabbitmqConn,
 	}
 

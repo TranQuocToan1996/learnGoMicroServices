@@ -5,8 +5,9 @@ import "time"
 var (
 	HoChiMinhCityTimeZone, _ = time.LoadLocation("Asia/Saigon")
 
+	// TODO: add saigon location
 	TimeLocalNow func() time.Time = func() time.Time {
-		return timeLocalNow(HoChiMinhCityTimeZone)
+		return timeLocalNow(time.Now().Location())
 	}
 )
 

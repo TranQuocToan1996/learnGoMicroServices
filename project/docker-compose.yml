@@ -17,7 +17,7 @@ services:
     depends_on:
       - rabbitmq
     links: 
-        - rabbitmq      
+      - rabbitmq      
     
   
   listener-service:
@@ -31,7 +31,7 @@ services:
     depends_on:
       - rabbitmq
     links: 
-        - rabbitmq        
+      - rabbitmq       
 
   logger-service:
     build:
@@ -44,7 +44,7 @@ services:
     depends_on:
       - rabbitmq
     links: 
-        - rabbitmq        
+      - rabbitmq        
 
   mailer-service:
     build:
@@ -66,7 +66,7 @@ services:
     depends_on:
       - rabbitmq
     links: 
-        - rabbitmq        
+      - rabbitmq        
 
 
 

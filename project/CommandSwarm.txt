@@ -1,0 +1,24 @@
+docker build -f dockerFileName -t imageName:version folderPath
+
+docker push imageName:version
+
+docker login
+
+docker stack deploy -c swarm.yml custerName
+
+docker stack rm custerName
+
+docker service ls
+
+// NumberOfIntance == 0 is shutdown
+docker service scale custerName_serviceName=NumberOfIntance
+
+// note this command can use for both update and downgrade actions
+docker service update --image imageName:version myapp_logger-service
+
+docker swarm leave
+docker swarm leave --force
+
+docker swarm init
+
+docker swarm COMMAND --help

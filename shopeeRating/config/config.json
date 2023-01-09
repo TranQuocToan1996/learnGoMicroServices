@@ -1,0 +1,21 @@
+
+{
+	"app": {
+		"name": "shopee_rating",
+		"version": "1.0.0"
+	},
+	"http": {
+		"port": "8080"
+	},
+	"logger": {
+		"log_level": "debug",
+		"rollbar_env": "shopee_rating"
+	},
+	"postgres": {
+		"pool_max": 2
+	},
+	"api": {
+		"limit": 50,
+		"baseURL": "https://shopee.vn/api"
+	}
+}
